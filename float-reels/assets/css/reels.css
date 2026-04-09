@@ -1,0 +1,362 @@
+/**
+ * float Reels — Stylesheet
+ *
+ * Self-contained styles for the reel-card, reels-carousel, reels-popup,
+ * and reels-archive components.
+ *
+ * CSS custom properties used:
+ *   --radius-md   Card border radius.  Fallback: 12px
+ *   --white       Text / icon colour.  Fallback: #ffffff
+ *
+ * These variables are provided by the float News theme. When the plugin is
+ * used with a different theme, the fallback values apply automatically.
+ */
+
+/* ==========================================================================
+   Shared helpers
+   ========================================================================== */
+
+/* Visually hidden but accessible to screen readers */
+.a11y-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ==========================================================================
+   Reel Card — shared between carousel and archive
+   ========================================================================== */
+
+.reel-card__video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.reel-card__media {
+    position: relative;
+    aspect-ratio: 9 / 16;
+    border-radius: var(--radius-md, 12px);
+    overflow: hidden;
+}
+
+/* Dark overlay on the video */
+.reel-card__media::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: var(--radius-md, 12px);
+}
+
+/* Play button & overlay sit above the dark tint */
+.reel-card__media .video__play,
+.reel-card__overlay {
+    position: absolute;
+    z-index: 1;
+}
+
+/* Play button — centred */
+.reel-card__media .video__play {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    transition: opacity 0.2s ease;
+}
+
+/* Bottom text overlay */
+.reel-card__overlay {
+    right: 15px;
+    bottom: 15px;
+    left: 15px;
+}
+
+.reel-card__overlay .top-title,
+.reel-card__overlay h2,
+.reel-card__overlay h3 {
+    display: block;
+    color: var(--white, #ffffff);
+}
+
+.reel-card__overlay h2,
+.reel-card__overlay h3 {
+    font-size: 1.125rem;
+    margin: 0;
+}
+
+/* Safari GPU-layer fix — prevents flickering on z-index stacking */
+.reel-card__overlay,
+.reel-card__media::after,
+.video__play {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+}
+
+/* ==========================================================================
+   Reels Carousel Block (homepage)
+   ========================================================================== */
+
+/* Mobile: each slide ~80 vw wide with small left margin */
+.reels-carousel .reels__item {
+    margin: 0 0 0 15px;
+    width: calc(80vw - 30px);
+    border-radius: var(--radius-md, 12px);
+    overflow: hidden;
+}
+
+.reels-carousel .reels__item:last-of-type {
+    margin-right: 15px;
+}
+
+/* Desktop (≥ 768 px): ~3 slides visible */
+@media (min-width: 768px) {
+    .reels-carousel .reels__item {
+        max-width: calc(42.3333% - 40px);
+        width: calc(42.3333% - 40px);
+        margin: 0 20px 0 0;
+    }
+
+    .reels-carousel .reels__item:last-of-type {
+        margin-right: 0;
+    }
+}
+
+/* ==========================================================================
+   Reels Archive Page (/reels/)
+   ========================================================================== */
+
+.reels-archive {
+    padding: 16px 0 40px;
+}
+
+.reels-archive__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+@media (min-width: 768px) {
+    .reels-archive__grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+}
+
+.reels-archive__item {
+    min-width: 0;
+}
+
+.reels-archive__item .reel-card__media {
+    border-radius: var(--radius-md, 12px);
+    overflow: hidden;
+}
+
+/* ==========================================================================
+   Reels Popup (full-screen viewer)
+   ========================================================================== */
+
+#reels-popup {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: #000;
+}
+
+#reels-popup[hidden] {
+    display: none;
+}
+
+body[data-popup-open] {
+    overflow: hidden;
+}
+
+/* ── Shared button base (close, mute, nav) ── */
+.reels-popup__close,
+.reels-popup__mute,
+.reels-popup__nav {
+    position: absolute;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #fff;
+    transition: background 0.2s ease;
+}
+
+.reels-popup__close:hover,
+.reels-popup__close:focus-visible,
+.reels-popup__mute:hover,
+.reels-popup__mute:focus-visible,
+.reels-popup__nav:hover,
+.reels-popup__nav:focus-visible {
+    background: rgba(255, 255, 255, 0.2);
+    outline: none;
+}
+
+.reels-popup__nav:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+/* Close: top-right */
+.reels-popup__close {
+    top: 16px;
+    right: 16px;
+}
+
+/* Mute: below close button */
+.reels-popup__mute {
+    top: 72px;
+    right: 16px;
+}
+
+/* Icon visibility driven by data-muted attribute */
+.reels-popup__mute[data-muted="true"]  .reels-popup__icon-unmuted { display: none; }
+.reels-popup__mute[data-muted="false"] .reels-popup__icon-muted   { display: none; }
+
+/* Nav buttons — hidden on mobile */
+.reels-popup__nav {
+    display: none;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* ── Swiper ── */
+.reels-popup__swiper {
+    width: 100%;
+    height: 100%;
+}
+
+/* ── Slide ── */
+.reels-popup__slide {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* ── Blurred background (desktop only) ── */
+.reels-popup__bg {
+    display: none;
+}
+
+/* ── Video container — fills entire slide on mobile ── */
+.reels-popup__video-container {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+.reels-popup__video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ── Gradient + title overlay ── */
+.reels-popup__overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 48px 20px 32px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, transparent 100%);
+    z-index: 2;
+    color: #fff;
+}
+
+.reels-popup__kicker {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+    margin-bottom: 6px;
+}
+
+.reels-popup__title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+/* ── Desktop layout (≥ 768 px) ── */
+@media (min-width: 768px) {
+
+    .reels-popup__slide {
+        background: #111;
+    }
+
+    /* Blurred background image */
+    .reels-popup__bg {
+        display: block;
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+        background-position: center;
+        filter: blur(60px) brightness(0.4);
+        transform: scale(1.15);
+        z-index: 0;
+    }
+
+    /* Centred 9:16 column */
+    .reels-popup__video-container {
+        position: absolute;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%);
+        width: 33.333%;
+        max-width: 380px;
+        min-width: 230px;
+        inset: auto;
+        z-index: 1;
+    }
+
+    /* Video fills the column at 9:16 ratio */
+    .reels-popup__video {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 9 / 16;
+        object-fit: cover;
+    }
+
+    /* Nav buttons: left / right */
+    .reels-popup__nav {
+        display: flex;
+    }
+
+    .reels-popup__nav--prev {
+        left: 16px;
+    }
+
+    .reels-popup__nav--next {
+        right: 16px;
+    }
+}
