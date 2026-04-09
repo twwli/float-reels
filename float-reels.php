@@ -112,15 +112,7 @@ function float_reels_archive_template( $template ) {
  *
  * Usage in a theme template:
  *   <?php if ( function_exists( 'float_reels_carousel' ) ) float_reels_carousel(); ?>
- *
- * Or with a city filter:
- *   <?php float_reels_carousel( 'berlin' ); ?>
- *
- * @param string $city_slug  Optional city taxonomy slug to filter by.
- *                           Pass an empty string (default) to show all reels.
  */
-function float_reels_carousel( $city_slug = '' ) {
-	$city_slug = sanitize_key( $city_slug );
-	set_query_var( 'float_reels_city_slug', $city_slug );
+function float_reels_carousel() {
 	load_template( float_REELS_DIR . 'templates/reels-carousel.php', false );
 }

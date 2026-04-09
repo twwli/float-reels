@@ -7,26 +7,8 @@
  *
  *   <?php if ( function_exists( 'float_reels_carousel' ) ) float_reels_carousel(); ?>
  *
- * Or with a city filter:
- *
- *   <?php float_reels_carousel( 'berlin' ); ?>
- *
- * The city_slug is passed via query var 'float_reels_city_slug' by the wrapper
- * function defined in float-reels.php.
- *
  * @package floatReels
  */
-
-// ── City context ──────────────────────────────────────────────────────────────
-// Accept either the query var (set by float_reels_carousel()) or the global
-// $float_city_slug used by the float News theme.
-$float_reels_city = get_query_var( 'float_reels_city_slug', '' );
-
-if ( empty( $float_reels_city ) && isset( $GLOBALS['float_city_slug'] ) ) {
-	$float_reels_city = $GLOBALS['float_city_slug'];
-}
-
-$float_reels_city = sanitize_key( $float_reels_city );
 
 // ── Build WP_Query args ───────────────────────────────────────────────────────
 $float_reels_query_args = array(
@@ -38,17 +20,6 @@ $float_reels_query_args = array(
 	'no_found_rows'       => true,
 	'ignore_sticky_posts' => true,
 );
-
-// Only apply city filter when a slug is provided AND the taxonomy exists.
-if ( $float_reels_city && taxonomy_exists( 'city' ) ) {
-	$float_reels_query_args['tax_query'] = array(
-		array(
-			'taxonomy' => 'city',
-			'field'    => 'slug',
-			'terms'    => $float_reels_city,
-		),
-	);
-}
 
 // ── Collect reel data ─────────────────────────────────────────────────────────
 $float_reels_data  = array();
