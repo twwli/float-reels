@@ -47,25 +47,9 @@ if ( empty( $float_reels_data ) ) {
 
 <!-- REELS (horizontal carousel + full-screen popup) -->
 <section class="section section--reels col-eight" aria-label="<?php esc_attr_e( 'Reels', 'float-reels' ); ?>">
-
-	<header class="section__header container flex space-between">
-		<p class="hero-card__label tag">
-			<span class="chip chip--assist" aria-label="<?php esc_attr_e( 'Reels section', 'float-reels' ); ?>">
-				<span class="chip__icon" aria-hidden="true">
-					<svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#fff"><path d="M672-192v-576q29 0 50.5 21.16t21.5 50.88v432.24Q744-234 722.5-213T672-192ZM168-96q-29.7 0-50.85-21.15Q96-138.3 96-168v-624q0-29.7 21.15-50.85Q138.3-864 168-864h360q29 0 50.5 21.15T600-792v624q0 29.7-21.5 50.85Q557-96 528-96H168Zm648-144v-480q22 0 35 23t13 45v344q0 22-13 45t-35 23Zm-648 72h360v-624H168v624Zm0-624v624-624Z"/></svg>
-				</span>
-				<span class="chip__text"><?php esc_html_e( 'Reels', 'float-reels' ); ?></span>
-			</span>
-		</p>
-		<a href="<?php echo esc_url( get_post_type_archive_link( 'reel' ) ); ?>" class="header__action flex align-center">
-			<span class="action--assist" aria-label="<?php esc_attr_e( 'All Reels', 'float-reels' ); ?>"></span>
-			<span class="action__text label-large"><?php esc_html_e( 'All reels', 'float-reels' ); ?></span>
-			<span class="action__icon" aria-hidden="true">
-				<svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#4A5561"><path d="M522-480 333-669l51-51 240 240-240 240-51-51 189-189Z"/></svg>
-			</span>
-		</a>
-	</header>
-
+	<div class="section__header">
+		<h2>float Videos <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#1a1a1a"><path d="M504-480 320-664l56-56 240 240-240 240-56-56 184-184Z"/></svg></h2>
+	</div>
 	<!-- ── Horizontal carousel ─────────────────────────────────────────────── -->
 	<div class="reels-carousel swiper" role="region" aria-label="<?php esc_attr_e( 'Reels carousel', 'float-reels' ); ?>">
 		<div class="swiper-wrapper reels__list" role="list">

@@ -43,7 +43,6 @@
 .reel-card__media {
     position: relative;
     aspect-ratio: 9 / 16;
-    border-radius: var(--radius-md, 12px);
     overflow: hidden;
 }
 
@@ -53,7 +52,6 @@
     position: absolute;
     inset: 0;
     background-color: rgba(0, 0, 0, 0.4);
-    border-radius: var(--radius-md, 12px);
 }
 
 /* Play button & overlay sit above the dark tint */
@@ -116,7 +114,6 @@
 .reels-carousel .reels__item {
     margin: 0 0 0 15px;
     width: calc(80vw - 30px);
-    border-radius: var(--radius-md, 12px);
     overflow: hidden;
 }
 
@@ -166,7 +163,6 @@
 }
 
 .reels-archive__item .reel-card__media {
-    border-radius: var(--radius-md, 12px);
     overflow: hidden;
 }
 
