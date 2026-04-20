@@ -15,6 +15,11 @@
  * Dependency: Swiper v11 (loaded separately via wp_enqueue_script / CDN).
  */
 
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+if (isIOS) {
+    video.load();
+}
+
 /* ==========================================================================
    1. REELS SLIDER
    ========================================================================== */

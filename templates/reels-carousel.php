@@ -69,12 +69,14 @@ if ( empty( $float_reels_data ) ) {
 
 						<video
 							class="reel-card__video"
-							src="<?php echo esc_url( $float_reel['video_url'] ); ?>#t=0.001"
+							src="<?php echo esc_url( $float_reel['video_url'] ); ?>"
+							poster="<?php echo esc_url( $float_reel['thumbnail'] ); ?>"
 							muted
 							playsinline
 							loop
 							preload="metadata"
-						></video>
+						>
+					</video>
 
 						<!-- Play overlay -->
 						<span class="video__play" aria-hidden="true">
@@ -158,7 +160,7 @@ if ( empty( $float_reels_data ) ) {
 					<div class="reels-popup__video-container">
 						<video
 							class="reels-popup__video"
-							src="<?php echo esc_url( $float_popup_reel['video_url'] ); ?>#t=0.001"
+							src="<?php echo esc_url( $float_popup_reel['video_url'] ); ?>"
 							muted
 							playsinline
 							preload="metadata"
