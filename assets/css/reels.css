@@ -37,6 +37,12 @@
     margin: 0 0 2em;
 }
 
+@media (min-width: 768px) {
+    .section--reels .section__header {
+        padding: 0 4%;
+    }
+}
+
 .reel-card__video {
     display: block;
     width: 100%;
@@ -314,11 +320,15 @@ body[data-popup-open] {
         background: #111;
     }
 
-    /* Blurred background image */
+    /* Blurred background image.
+       The URL is passed via the `--reels-popup-bg` custom property on the
+       element itself (see template). `background-image` is only declared
+       here, inside the desktop media query, so mobile never fetches it. */
     .reels-popup__bg {
         display: block;
         position: absolute;
         inset: 0;
+        background-image: var(--reels-popup-bg);
         background-size: cover;
         background-position: center;
         filter: blur(60px) brightness(0.4);

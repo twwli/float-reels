@@ -3,7 +3,7 @@
  * Plugin Name:       float Reels
  * Plugin URI:        https://floatmagazin.de
  * Description:       Standalone Reels functionality — CPT, ACF fields, carousel, popup and archive. Works independently of any theme.
- * Version:           1.0.2
+ * Version:           1.0.3
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * Author:            float News
@@ -16,13 +16,63 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-define( 'float_REELS_VERSION', '1.0.2' );
+define( 'float_REELS_VERSION', '1.0.3' );
 define( 'float_REELS_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'float_REELS_URL',     plugin_dir_url( __FILE__ ) );
 
 // ── Load sub-modules ──────────────────────────────────────────────────────────
 require_once float_REELS_DIR . 'includes/cpt.php';
 require_once float_REELS_DIR . 'includes/acf-fields.php';
+
+// ── Custom image size for reel card posters ──────────────────────────────────
+// 540×960 cropped 9:16 — sized for the carousel card poster, which renders at
+// ~150–300 CSS pixels wide. Covers up to DPR 3× without serving the ~1024 px
+// 'large' thumbnail unnecessarily.
+//
+// Existing attachments won't have this size until thumbnails are regenerated
+// (e.g. via the "Regenerate Thumbnails" plugin or `wp media regenerate`).
+// The helper below falls back gracefully when the size is missing.
+add_action( 'after_setup_theme', function () {
+	add_image_size( 'float-reel-card', 540, 960, true );
+}, 20 );
+
+/**
+ * Return the best available poster URL for an attachment at a preferred size,
+ * falling back to `medium_large` (or the next best) when the preferred size
+ * isn't actually generated on disk.
+ *
+ * This avoids WordPress's default behaviour of silently returning the
+ * original full-size file when an intermediate size is missing.
+ *
+ * @param int    $attachment_id
+ * @param string $preferred_size  Intermediate size name (e.g. 'float-reel-card').
+ * @return string Empty string when no image is available.
+ */
+function float_reels_poster_url( $attachment_id, $preferred_size ) {
+	if ( ! $attachment_id ) {
+		return '';
+	}
+
+	$meta = wp_get_attachment_metadata( $attachment_id );
+
+	// Preferred size is generated → use it.
+	if ( is_array( $meta ) && ! empty( $meta['sizes'][ $preferred_size ] ) ) {
+		$src = wp_get_attachment_image_src( $attachment_id, $preferred_size );
+		if ( $src ) {
+			return $src[0];
+		}
+	}
+
+	// Fallback chain: medium_large → large → full.
+	foreach ( array( 'medium_large', 'large', 'full' ) as $fallback ) {
+		$src = wp_get_attachment_image_src( $attachment_id, $fallback );
+		if ( $src ) {
+			return $src[0];
+		}
+	}
+
+	return '';
+}
 
 // ── Activation hook — flush rewrite rules ─────────────────────────────────────
 register_activation_hook( __FILE__, function () {

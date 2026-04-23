@@ -29,12 +29,19 @@ if ( $float_reels_query->have_posts() ) {
 	while ( $float_reels_query->have_posts() ) {
 		$float_reels_query->the_post();
 		$float_reel_video_id = get_field( 'reel_video' );
+		$float_reel_thumb_id = get_post_thumbnail_id( get_the_ID() );
 		$float_reels_data[]  = array(
-			'id'        => get_the_ID(),
-			'top_title' => get_field( 'top_title' ),
-			'title'     => get_field( 'reel_title' ) ?: get_the_title(),
-			'video_url' => $float_reel_video_id ? wp_get_attachment_url( $float_reel_video_id ) : '',
-			'thumbnail' => get_the_post_thumbnail_url( get_the_ID(), 'large' ) ?: '',
+			'id'           => get_the_ID(),
+			'top_title'    => get_field( 'top_title' ),
+			'title'        => get_field( 'reel_title' ) ?: get_the_title(),
+			'video_url'    => $float_reel_video_id ? wp_get_attachment_url( $float_reel_video_id ) : '',
+			// Poster sizes, from smallest to largest use case:
+			//   - poster_card  : carousel card  (≈540w, cropped 9:16)
+			//   - poster_popup : popup <video>  (large, 1024w)
+			//   - poster_bg    : popup desktop bg (medium_large, 768w — blurred, detail wasted)
+			'poster_card'  => float_reels_poster_url( $float_reel_thumb_id, 'float-reel-card' ),
+			'poster_popup' => float_reels_poster_url( $float_reel_thumb_id, 'large' ),
+			'poster_bg'    => float_reels_poster_url( $float_reel_thumb_id, 'medium_large' ),
 		);
 	}
 	wp_reset_postdata();
@@ -70,7 +77,7 @@ if ( empty( $float_reels_data ) ) {
 						<video
 							class="reel-card__video"
 							src="<?php echo esc_url( $float_reel['video_url'] ); ?>"
-							poster="<?php echo esc_url( $float_reel['thumbnail'] ); ?>"
+							poster="<?php echo esc_url( $float_reel['poster_card'] ); ?>"
 							muted
 							playsinline
 							loop
@@ -154,14 +161,16 @@ if ( empty( $float_reels_data ) ) {
 				<div class="swiper-slide reels-popup__slide">
 
 					<!-- Blurred background (desktop only) -->
-					<div class="reels-popup__bg" aria-hidden="true"<?php if ( $float_popup_reel['thumbnail'] ) : ?> style="background-image:url('<?php echo esc_url( $float_popup_reel['thumbnail'] ); ?>')"<?php endif; ?>></div>
+					<!-- URL passed via CSS variable so `background-image` only resolves -->
+					<!-- inside the desktop media query — mobile never fetches it. -->
+					<div class="reels-popup__bg" aria-hidden="true"<?php if ( $float_popup_reel['poster_bg'] ) : ?> style="--reels-popup-bg:url('<?php echo esc_url( $float_popup_reel['poster_bg'] ); ?>')"<?php endif; ?>></div>
 
 					<!-- Video + overlay -->
 					<div class="reels-popup__video-container">
 						<video
 							class="reels-popup__video"
 							data-src="<?php echo esc_url( $float_popup_reel['video_url'] ); ?>"
-							<?php if ( $float_popup_reel['thumbnail'] ) : ?>poster="<?php echo esc_url( $float_popup_reel['thumbnail'] ); ?>"<?php endif; ?>
+							<?php if ( $float_popup_reel['poster_popup'] ) : ?>poster="<?php echo esc_url( $float_popup_reel['poster_popup'] ); ?>"<?php endif; ?>
 							muted
 							playsinline
 							preload="none"
