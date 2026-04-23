@@ -81,7 +81,7 @@ if ( empty( $float_reels_data ) ) {
 							muted
 							playsinline
 							loop
-							preload="metadata"
+							preload="none"
 						>
 					</video>
 

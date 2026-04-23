@@ -15,27 +15,6 @@
  * Dependency: Swiper v11 (loaded separately via wp_enqueue_script / CDN).
  */
 
-/* iOS Safari parfois ignore `preload="metadata"` et n'affiche pas le poster
-   tant qu'on n'a pas explicitement appelé `.load()`. On le fait pour chaque
-   vidéo du carrousel une fois le DOM prêt. */
-(function () {
-  'use strict';
-  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  if (!isIOS) return;
-
-  function primeCarouselVideos() {
-    document.querySelectorAll('.reel-card__video').forEach(function (v) {
-      try { v.load(); } catch (e) {}
-    });
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', primeCarouselVideos);
-  } else {
-    primeCarouselVideos();
-  }
-})();
-
 /* ==========================================================================
    1. REELS SLIDER
    ========================================================================== */
@@ -51,6 +30,14 @@
     grabCursor:    true,
     a11y:          true,
   });
+
+  // ── Viewport-gated loading ─────────────────────────────────────────────────
+  // Carousel <video> elements ship with `preload="none"` so nothing touches
+  // the network until the section actually enters the viewport. On first
+  // intersection we upgrade preload to "metadata", trigger a .load() (required
+  // by iOS Safari to render posters), and start the active video. While the
+  // section is off-screen we pause to save CPU + bandwidth.
+  var primed = false;
 
   function playVideo(video) {
     video.play().catch(function () {});
@@ -69,11 +56,46 @@
     });
   }
 
+  function pauseAll() {
+    container.querySelectorAll('.reels__item video').forEach(function (v) {
+      v.pause();
+    });
+  }
+
+  function primeCarousel() {
+    if (primed) return;
+    primed = true;
+    container.querySelectorAll('.reels__item video').forEach(function (v) {
+      v.setAttribute('preload', 'metadata');
+      try { v.load(); } catch (e) {}
+    });
+  }
+
   reelsSwiper.on('slideChangeTransitionEnd', function () {
+    // Keyboard / touch users could interact before the observer fires — prime
+    // lazily in that case too.
+    if (!primed) primeCarousel();
     syncVideo(reelsSwiper.activeIndex);
   });
 
-  syncVideo(0);
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          primeCarousel();
+          syncVideo(reelsSwiper.activeIndex);
+        } else if (primed) {
+          pauseAll();
+        }
+      });
+    }, { rootMargin: '200px 0px', threshold: 0.1 });
+    io.observe(container);
+  } else {
+    // Legacy browsers (no IntersectionObserver): fall back to the old eager
+    // behaviour so nothing breaks.
+    primeCarousel();
+    syncVideo(0);
+  }
 })();
 
 
@@ -287,6 +309,24 @@
    ========================================================================== */
 (function () {
   'use strict';
+
+  // iOS Safari occasionally ignores `preload="metadata"` and won't render the
+  // poster frame until `.load()` is called explicitly. The carousel handles
+  // this inside its IntersectionObserver; the archive isn't viewport-gated
+  // (whole page is the archive), so we prime here once the DOM is ready.
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (isIOS) {
+    var primeArchive = function () {
+      document.querySelectorAll('[data-reel-archive] .reel-card__video').forEach(function (v) {
+        try { v.load(); } catch (e) {}
+      });
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', primeArchive);
+    } else {
+      primeArchive();
+    }
+  }
 
   document.querySelectorAll('[data-reel-archive] .reel-card__media').forEach(function (media) {
     var video   = media.querySelector('video');
