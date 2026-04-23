@@ -15,10 +15,26 @@
  * Dependency: Swiper v11 (loaded separately via wp_enqueue_script / CDN).
  */
 
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-if (isIOS) {
-    video.load();
-}
+/* iOS Safari parfois ignore `preload="metadata"` et n'affiche pas le poster
+   tant qu'on n'a pas explicitement appelé `.load()`. On le fait pour chaque
+   vidéo du carrousel une fois le DOM prêt. */
+(function () {
+  'use strict';
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (!isIOS) return;
+
+  function primeCarouselVideos() {
+    document.querySelectorAll('.reel-card__video').forEach(function (v) {
+      try { v.load(); } catch (e) {}
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', primeCarouselVideos);
+  } else {
+    primeCarouselVideos();
+  }
+})();
 
 /* ==========================================================================
    1. REELS SLIDER
@@ -81,6 +97,34 @@ if (isIOS) {
   var popupSwiper = null;
   var isMuted     = true; // Persists across slides.
 
+  // ── Lazy-loading des vidéos popup ────────────────────────────────────────────
+  // Les <video> du popup sont rendues avec `data-src` (pas de `src`) et
+  // `preload="none"` pour éviter un double chargement au render de la page.
+  // On hydrate à la demande : slide active + voisines.
+  function getPopupVideos() {
+    return popup.querySelectorAll('.reels-popup__slide video');
+  }
+
+  function ensureVideoLoaded(video) {
+    if (!video) return;
+    if (video.getAttribute('src')) return; // déjà hydratée
+    var src = video.getAttribute('data-src');
+    if (!src) return;
+    video.setAttribute('src', src);
+    // preload="none" empêchait tout chargement ; on passe à metadata et
+    // on déclenche explicitement le chargement pour iOS Safari.
+    video.setAttribute('preload', 'metadata');
+    try { video.load(); } catch (e) {}
+  }
+
+  function hydrateAround(index) {
+    var videos = getPopupVideos();
+    if (!videos.length) return;
+    [index - 1, index, index + 1].forEach(function (i) {
+      if (i >= 0 && i < videos.length) ensureVideoLoaded(videos[i]);
+    });
+  }
+
   // ── Responsive direction ────────────────────────────────────────────────────
   var mobileMedia = window.matchMedia('(max-width: 767px)');
 
@@ -107,13 +151,15 @@ if (isIOS) {
 
   // ── Play active video, pause others ─────────────────────────────────────────
   function syncPopupVideo() {
-    popup.querySelectorAll('.reels-popup__slide video').forEach(function (v, i) {
-      if (i === popupSwiper.activeIndex) {
+    var active = popupSwiper.activeIndex;
+    hydrateAround(active);
+    getPopupVideos().forEach(function (v, i) {
+      if (i === active) {
         applyMute(v);
         v.play().catch(function () {});
       } else {
         v.pause();
-        v.currentTime = 0;
+        if (v.getAttribute('src')) v.currentTime = 0;
       }
     });
     updateNavBtns();
@@ -178,7 +224,9 @@ if (isIOS) {
     document.body.removeAttribute('data-popup-open');
     popup.querySelectorAll('video').forEach(function (v) {
       v.pause();
-      v.currentTime = 0;
+      // Ne pas toucher currentTime sur une vidéo non hydratée (pas de src) :
+      // cela déclencherait un warning ou, pire, un load inutile.
+      if (v.getAttribute('src')) v.currentTime = 0;
     });
   }
 

@@ -33,6 +33,10 @@
    Reel Card — shared between carousel and archive
    ========================================================================== */
 
+.section--reels {
+    margin: 0 0 2em;
+}
+
 .reel-card__video {
     display: block;
     width: 100%;

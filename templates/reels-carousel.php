@@ -160,10 +160,10 @@ if ( empty( $float_reels_data ) ) {
 					<div class="reels-popup__video-container">
 						<video
 							class="reels-popup__video"
-							src="<?php echo esc_url( $float_popup_reel['video_url'] ); ?>"
+							data-src="<?php echo esc_url( $float_popup_reel['video_url'] ); ?>"
 							muted
 							playsinline
-							preload="metadata"
+							preload="none"
 						></video>
 
 						<div class="reels-popup__overlay" aria-hidden="true">
