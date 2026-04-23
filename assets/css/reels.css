@@ -134,8 +134,8 @@
 /* Desktop (≥ 768 px): ~3 slides visible */
 @media (min-width: 768px) {
     .reels-carousel .reels__item {
-        max-width: calc(42.3333% - 40px);
-        width: calc(42.3333% - 40px);
+        max-width: calc(33.3333% - 40px);
+        width: calc(33.3333% - 40px);
         margin: 0 20px 0 0;
     }
 
