@@ -5,6 +5,21 @@ All notable changes to **float Reels** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] — 2026-04-23
+
+### Changed
+- Homepage carousel `<video>` elements now ship with `preload="none"` instead of `preload="metadata"`. Nothing is fetched until the user actually scrolls the Reels section into view.
+- Carousel module uses an `IntersectionObserver` (with a 200 px `rootMargin` to anticipate the scroll) to prime videos on entry: `preload` is upgraded to `metadata`, `.load()` is triggered (handles the iOS Safari poster quirk), and the active slide starts playing. When the section leaves the viewport, videos are paused to save CPU and stop progressive download.
+- Swiper interactions (keyboard / touch before viewport entry) prime lazily on `slideChangeTransitionEnd` too, so users who reach the carousel by tabbing don't sit on silent tiles.
+- Legacy browsers without `IntersectionObserver` fall back to the previous eager behaviour.
+
+### Removed
+- Top-level iOS `.load()` IIFE that primed **every** `.reel-card__video` at `DOMContentLoaded`. For the homepage carousel, that work now happens inside `primeCarousel()` once the section is near the viewport. A scoped equivalent remains inside the archive module (`[data-reel-archive]` only), since the archive page isn't viewport-gated.
+
+### Performance
+- Homepage first paint no longer triggers any video network request at all when the Reels section is below the fold. Users who never scroll to it pay zero video bytes.
+- Users who do scroll to it get metadata preloaded ~200 px before entry, so perceived latency is unchanged.
+
 ## [1.0.3] — 2026-04-23
 
 ### Added
@@ -54,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Swiper 11 bundled locally (`assets/js/libs/`) with jsDelivr CDN fallback.
 - Activation hook flushes rewrite rules after registering the CPT.
 
+[1.0.4]: #104--2026-04-23
 [1.0.3]: #103--2026-04-23
 [1.0.2]: #102--2026-04-23
 [1.0.1]: #101--2026-04-23
