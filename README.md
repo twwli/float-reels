@@ -96,7 +96,7 @@ Version constant `float_REELS_VERSION` is used as the cache-buster query string 
 
 `assets/js/reels.js` is split into three independent IIFE modules:
 
-1. **Reels slider** — horizontal Swiper on the homepage. The active slide's video plays muted; non-active slides pause and reset to `currentTime = 0`.
+1. **Reels slider** — horizontal Swiper on the homepage. The active slide's video plays muted; non-active slides pause and reset to `currentTime = 0`. Loading is **viewport-gated** via `IntersectionObserver`: `<video>` elements ship with `preload="none"` and are only upgraded to `preload="metadata"` + `.load()` + `.play()` when the section comes within 200 px of the viewport. When the section scrolls off-screen, videos are paused to stop progressive download.
 2. **Reels popup** — full-screen Swiper opened when a carousel item is clicked (or `Enter` / `Space` on a focused tile). Direction adapts to viewport: **vertical** under 768 px, **horizontal** above, with prev/next buttons on desktop. Mute state persists across slides. Pressing `Escape`, clicking the close button, or reaching past the last/first slide via the nav arrows closes the popup.
 3. **Reels archive** — click-to-play/pause on `/reels/` tiles.
 
