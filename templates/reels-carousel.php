@@ -161,6 +161,7 @@ if ( empty( $float_reels_data ) ) {
 						<video
 							class="reels-popup__video"
 							data-src="<?php echo esc_url( $float_popup_reel['video_url'] ); ?>"
+							<?php if ( $float_popup_reel['thumbnail'] ) : ?>poster="<?php echo esc_url( $float_popup_reel['thumbnail'] ); ?>"<?php endif; ?>
 							muted
 							playsinline
 							preload="none"
