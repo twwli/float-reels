@@ -5,6 +5,20 @@ All notable changes to **float Reels** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] — 2026-04-23
+
+### Added
+- Custom image size `float-reel-card` (540×960, cropped 9:16) registered via `add_image_size()` and used as the carousel card poster. Replaces the previous `large` (1024 px) thumbnail for a tile that renders at ~150–300 CSS pixels wide. Roughly 4× lighter posters on the homepage.
+- New helper `float_reels_poster_url( $attachment_id, $preferred_size )` that falls back cleanly to `medium_large` → `large` → `full` when the preferred intermediate size isn't generated — avoids WordPress's silent fallback to the original full-size upload.
+
+### Changed
+- Popup `<video poster>` now uses `large` explicitly (1024 px, adequate for a near-fullscreen view on mobile retina).
+- Desktop blurred background (`.reels-popup__bg`) now receives its URL through a `--reels-popup-bg` CSS custom property declared on the element itself. The `background-image` property is only applied inside the `@media (min-width: 768px)` rule, so mobile browsers never fetch this asset — previously, some browsers resolved the inline `style="background-image:url()"` even when the element was `display: none`.
+- Desktop background image dropped from `large` to `medium_large` (768w). It's blurred 60 px and scaled 1.15× — the extra resolution was wasted.
+
+### Migration notes
+- **Regenerate thumbnails for existing reels** so the new `float-reel-card` size is actually generated on disk. Easiest options: the free [Regenerate Thumbnails](https://wordpress.org/plugins/regenerate-thumbnails/) plugin (**Tools → Regenerate Thumbnails**), or WP-CLI: `wp media regenerate --yes`. Until this is done, existing reels degrade automatically to `medium_large` via the helper — still better than the previous `large`, but not optimal.
+
 ## [1.0.2] — 2026-04-23
 
 ### Added
@@ -40,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Swiper 11 bundled locally (`assets/js/libs/`) with jsDelivr CDN fallback.
 - Activation hook flushes rewrite rules after registering the CPT.
 
+[1.0.3]: #103--2026-04-23
 [1.0.2]: #102--2026-04-23
 [1.0.1]: #101--2026-04-23
 [1.0.0]: #100--2026-04-22
