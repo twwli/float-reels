@@ -46,6 +46,26 @@ Declared in `includes/acf-fields.php` as local field groups (version-controlled,
 | `reel_title`       | Text  | no       | Display title. Falls back to `post_title` when empty.                 |
 | `thumbnail_square` | Image | no       | Optional manual square crop (min 800 × 800) for listing views.        |
 
+## Image sizes
+
+The plugin registers one custom size via `add_image_size()`:
+
+| Name               | Dimensions   | Crop | Used for                        |
+| ------------------ | ------------ | ---- | ------------------------------- |
+| `float-reel-card`  | 540 × 960 px | yes  | Carousel card video `poster`    |
+
+The popup `<video poster>` uses the default `large` size; the desktop blurred background uses `medium_large`.
+
+**After activating or updating the plugin, regenerate thumbnails** so the new size is created for existing reel featured images:
+
+```
+wp media regenerate --yes
+```
+
+Or install [Regenerate Thumbnails](https://wordpress.org/plugins/regenerate-thumbnails/) and run **Tools → Regenerate Thumbnails**.
+
+Until regeneration, existing reels degrade automatically to `medium_large` via `float_reels_poster_url()` — usable, but not optimal.
+
 ## Usage
 
 ### Homepage carousel
