@@ -5,6 +5,11 @@ All notable changes to **float Reels** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] — 2026-04-23
+
+### Added
+- `poster` attribute on the popup `<video>` elements, reusing the same thumbnail URL already set on the carousel card. Before hydration (and during the brief load once `src` is set from `data-src`), the popup now displays the poster instead of a black frame — noticeably better perceived performance on mobile. Cost is zero bandwidth: the browser reuses the thumbnail already cached by the carousel.
+
 ## [1.0.1] — 2026-04-23
 
 ### Fixed
@@ -35,5 +40,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Swiper 11 bundled locally (`assets/js/libs/`) with jsDelivr CDN fallback.
 - Activation hook flushes rewrite rules after registering the CPT.
 
+[1.0.2]: #102--2026-04-23
 [1.0.1]: #101--2026-04-23
 [1.0.0]: #100--2026-04-22
