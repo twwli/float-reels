@@ -12,8 +12,77 @@
  *
  *   3. REELS ARCHIVE     — Click-to-play/pause on the /reels/ archive grid.
  *
- * Dependency: Swiper v11 (loaded separately via wp_enqueue_script / CDN).
+ * Dependencies:
+ *   - Swiper v11   (homepage carousel + popup)
+ *   - hls.js 1.5.x (HLS playback on Chrome / Firefox / Edge — Safari/iOS use native HLS)
  */
+
+/* ==========================================================================
+   0. SHARED — attach an HLS source (Cloudflare Stream) to a <video> element.
+   ========================================================================== */
+window.floatReels = window.floatReels || {};
+
+/**
+ * Wire a <video data-hls="..."> element up to its source.
+ * - Safari / iOS  : native HLS via <video src>.
+ * - Other browsers: hls.js when available.
+ * Idempotent: calling twice on the same element is a no-op.
+ */
+window.floatReels.attachHls = function (video) {
+  if (!video || video.__flReelsAttached) return;
+  var url = video.getAttribute('data-hls');
+  if (!url) return;
+
+  // Native HLS (Safari desktop, iOS) — cheapest path.
+  if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = url;
+    video.__flReelsAttached = true;
+    // iOS Safari sometimes needs an explicit .load() to render the poster
+    // frame after the src swap. Harmless on other browsers with native HLS.
+    try { video.load(); } catch (e) {}
+    return;
+  }
+
+  // hls.js for Chromium / Firefox.
+  //
+  // IMPORTANT: never call video.load() after attachMedia() — it detaches the
+  // MediaSource that hls.js just wired up and playback silently drops to an
+  // empty frame. Any external caller that used to pair attachHls() with a
+  // defensive .load() must drop it for this branch.
+  if (window.Hls && window.Hls.isSupported()) {
+    var hls = new window.Hls({
+      capLevelToPlayerSize: true, // never download a variant larger than the rendered size
+      maxBufferLength: 10,        // keep the forward buffer tight for mobile data
+      startLevel: -1              // auto-select start bitrate
+    });
+    hls.loadSource(url);
+    hls.attachMedia(video);
+    video.__flReelsAttached = true;
+    video.__flHls = hls;
+    return;
+  }
+
+  // Last resort: hand the manifest to the browser and hope for the best.
+  video.src = url;
+  video.__flReelsAttached = true;
+};
+
+/**
+ * Play a <video>, retrying on `canplay` if the first attempt is rejected
+ * because the source isn't buffered yet (common with hls.js on slow
+ * connections, or Safari still fetching the manifest).
+ */
+window.floatReels.play = function (video) {
+  if (!video) return;
+  var attempt = function () { return video.play(); };
+  var onCanPlay = function () {
+    video.removeEventListener('canplay', onCanPlay);
+    attempt().catch(function () {});
+  };
+  attempt().catch(function () {
+    video.addEventListener('canplay', onCanPlay);
+  });
+};
 
 /* ==========================================================================
    1. REELS SLIDER
@@ -32,26 +101,23 @@
   });
 
   // ── Viewport-gated loading ─────────────────────────────────────────────────
-  // Carousel <video> elements ship with `preload="none"` so nothing touches
-  // the network until the section actually enters the viewport. On first
-  // intersection we upgrade preload to "metadata", trigger a .load() (required
-  // by iOS Safari to render posters), and start the active video. While the
-  // section is off-screen we pause to save CPU + bandwidth.
+  // Carousel <video> elements ship with `preload="none"` + `data-hls` so
+  // nothing touches the network until the section actually enters the
+  // viewport. On first intersection we upgrade preload to "metadata", wire
+  // up the HLS source via attachHls() (native on Safari, hls.js elsewhere)
+  // and start the active video. While the section is off-screen we pause
+  // to save CPU + bandwidth.
   var primed = false;
-
-  function playVideo(video) {
-    video.play().catch(function () {});
-  }
 
   function syncVideo(index) {
     container.querySelectorAll('.reels__item').forEach(function (item, i) {
       var video = item.querySelector('video');
       if (!video) return;
       if (i === index) {
-        playVideo(video);
+        window.floatReels.play(video);
       } else {
         video.pause();
-        video.currentTime = 0;
+        if (video.__flReelsAttached) video.currentTime = 0;
       }
     });
   }
@@ -67,7 +133,10 @@
     primed = true;
     container.querySelectorAll('.reels__item video').forEach(function (v) {
       v.setAttribute('preload', 'metadata');
-      try { v.load(); } catch (e) {}
+      // attachHls() handles .load() internally for the native-HLS path.
+      // Never add an external .load() here — it would detach the MediaSource
+      // wired up by hls.js on Chromium / Firefox.
+      window.floatReels.attachHls(v);
     });
   }
 
@@ -119,24 +188,22 @@
   var popupSwiper = null;
   var isMuted     = true; // Persists across slides.
 
-  // ── Lazy-loading des vidéos popup ────────────────────────────────────────────
-  // Les <video> du popup sont rendues avec `data-src` (pas de `src`) et
-  // `preload="none"` pour éviter un double chargement au render de la page.
-  // On hydrate à la demande : slide active + voisines.
+  // ── Lazy-loading of popup videos ────────────────────────────────────────────
+  // Popup <video> elements ship with `data-hls` + `preload="none"` so nothing
+  // loads at page render. We hydrate on demand (active slide + neighbours),
+  // deferring to `floatReels.attachHls()` to pick the right playback path
+  // (native HLS on Safari/iOS, hls.js elsewhere).
   function getPopupVideos() {
     return popup.querySelectorAll('.reels-popup__slide video');
   }
 
   function ensureVideoLoaded(video) {
     if (!video) return;
-    if (video.getAttribute('src')) return; // déjà hydratée
-    var src = video.getAttribute('data-src');
-    if (!src) return;
-    video.setAttribute('src', src);
-    // preload="none" empêchait tout chargement ; on passe à metadata et
-    // on déclenche explicitement le chargement pour iOS Safari.
+    if (video.__flReelsAttached) return;
     video.setAttribute('preload', 'metadata');
-    try { video.load(); } catch (e) {}
+    // attachHls() handles .load() internally for the native-HLS path.
+    // No external .load() — would detach hls.js's MediaSource on Chromium.
+    window.floatReels.attachHls(video);
   }
 
   function hydrateAround(index) {
@@ -178,10 +245,13 @@
     getPopupVideos().forEach(function (v, i) {
       if (i === active) {
         applyMute(v);
-        v.play().catch(function () {});
+        window.floatReels.play(v);
       } else {
         v.pause();
-        if (v.getAttribute('src')) v.currentTime = 0;
+        // Only rewind videos that have actually been attached — touching
+        // currentTime on an unattached (no MediaSource) video is a no-op
+        // under hls.js and can emit a warning.
+        if (v.__flReelsAttached) v.currentTime = 0;
       }
     });
     updateNavBtns();
@@ -246,9 +316,7 @@
     document.body.removeAttribute('data-popup-open');
     popup.querySelectorAll('video').forEach(function (v) {
       v.pause();
-      // Ne pas toucher currentTime sur une vidéo non hydratée (pas de src) :
-      // cela déclencherait un warning ou, pire, un load inutile.
-      if (v.getAttribute('src')) v.currentTime = 0;
+      if (v.__flReelsAttached) v.currentTime = 0;
     });
   }
 
@@ -310,30 +378,20 @@
 (function () {
   'use strict';
 
-  // iOS Safari occasionally ignores `preload="metadata"` and won't render the
-  // poster frame until `.load()` is called explicitly. The carousel handles
-  // this inside its IntersectionObserver; the archive isn't viewport-gated
-  // (whole page is the archive), so we prime here once the DOM is ready.
-  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  if (isIOS) {
-    var primeArchive = function () {
-      document.querySelectorAll('[data-reel-archive] .reel-card__video').forEach(function (v) {
-        try { v.load(); } catch (e) {}
-      });
-    };
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', primeArchive);
-    } else {
-      primeArchive();
-    }
-  }
-
+  // Archive tiles ship with `preload="none"` + `data-hls`. We attach the HLS
+  // source on the first user interaction (click) rather than page load —
+  // typical archives have many cards and it would be wasteful to wire every
+  // one up front. Posters are shown from the <video poster> attribute.
   document.querySelectorAll('[data-reel-archive] .reel-card__media').forEach(function (media) {
     var video   = media.querySelector('video');
     var playBtn = media.querySelector('.video__play');
     if (!video) return;
 
     media.addEventListener('click', function () {
+      if (!video.__flReelsAttached) {
+        video.setAttribute('preload', 'metadata');
+        window.floatReels.attachHls(video);
+      }
       if (video.paused) {
         video.play().catch(function () {});
         if (playBtn) playBtn.style.opacity = '0';

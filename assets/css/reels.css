@@ -123,7 +123,7 @@
 /* Mobile: each slide ~80 vw wide with small left margin */
 .reels-carousel .reels__item {
     margin: 0 0 0 15px;
-    width: calc(80vw - 30px);
+    width: calc(60vw - 30px);
     overflow: hidden;
 }
 

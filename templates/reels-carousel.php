@@ -28,20 +28,24 @@ $float_reels_query = new WP_Query( $float_reels_query_args );
 if ( $float_reels_query->have_posts() ) {
 	while ( $float_reels_query->have_posts() ) {
 		$float_reels_query->the_post();
-		$float_reel_video_id = get_field( 'reel_video' );
-		$float_reel_thumb_id = get_post_thumbnail_id( get_the_ID() );
-		$float_reels_data[]  = array(
+
+		$float_reel_stream_id = trim( (string) get_field( 'reel_stream_id' ) );
+		if ( ! $float_reel_stream_id ) {
+			continue; // Skip reels that haven't been migrated to Stream.
+		}
+
+		$float_reels_data[] = array(
 			'id'           => get_the_ID(),
 			'top_title'    => get_field( 'top_title' ),
 			'title'        => get_field( 'reel_title' ) ?: get_the_title(),
-			'video_url'    => $float_reel_video_id ? wp_get_attachment_url( $float_reel_video_id ) : '',
-			// Poster sizes, from smallest to largest use case:
-			//   - poster_card  : carousel card  (≈540w, cropped 9:16)
-			//   - poster_popup : popup <video>  (large, 1024w)
-			//   - poster_bg    : popup desktop bg (medium_large, 768w — blurred, detail wasted)
-			'poster_card'  => float_reels_poster_url( $float_reel_thumb_id, 'float-reel-card' ),
-			'poster_popup' => float_reels_poster_url( $float_reel_thumb_id, 'large' ),
-			'poster_bg'    => float_reels_poster_url( $float_reel_thumb_id, 'medium_large' ),
+			'hls_url'      => float_reels_stream_hls_url( $float_reel_stream_id ),
+			// Posters served on-demand by Cloudflare at the exact size we need:
+			//   - poster_card  : carousel card  (540×960 cropped 9:16)
+			//   - poster_popup : popup <video>  (720×1280, DPR 2× on a phone)
+			//   - poster_bg    : popup desktop bg (768w, blurred — ratio irrelevant)
+			'poster_card'  => float_reels_stream_thumbnail_url( $float_reel_stream_id, 540, 960, 'crop' ),
+			'poster_popup' => float_reels_stream_thumbnail_url( $float_reel_stream_id, 720, 1280, 'crop' ),
+			'poster_bg'    => float_reels_stream_thumbnail_url( $float_reel_stream_id, 768, null, 'cover' ),
 		);
 	}
 	wp_reset_postdata();
@@ -76,7 +80,7 @@ if ( empty( $float_reels_data ) ) {
 
 						<video
 							class="reel-card__video"
-							src="<?php echo esc_url( $float_reel['video_url'] ); ?>"
+							data-hls="<?php echo esc_url( $float_reel['hls_url'] ); ?>"
 							poster="<?php echo esc_url( $float_reel['poster_card'] ); ?>"
 							muted
 							playsinline
@@ -169,7 +173,7 @@ if ( empty( $float_reels_data ) ) {
 					<div class="reels-popup__video-container">
 						<video
 							class="reels-popup__video"
-							data-src="<?php echo esc_url( $float_popup_reel['video_url'] ); ?>"
+							data-hls="<?php echo esc_url( $float_popup_reel['hls_url'] ); ?>"
 							<?php if ( $float_popup_reel['poster_popup'] ) : ?>poster="<?php echo esc_url( $float_popup_reel['poster_popup'] ); ?>"<?php endif; ?>
 							muted
 							playsinline

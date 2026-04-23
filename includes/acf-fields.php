@@ -6,10 +6,10 @@
  * version-controlled and portable across environments.
  *
  * Fields registered here:
- *   • reel_video   — Video file (attachment ID, MP4)
- *   • top_title    — Optional kicker / label shown above the reel title
- *   • reel_title   — Display title (falls back to post title when empty)
- *   • thumbnail_square — Optional manually-cropped square thumbnail
+ *   • reel_stream_id   — Cloudflare Stream Video ID (required)
+ *   • top_title        — Optional kicker / label shown above the reel title
+ *   • reel_title       — Display title (falls back to post title when empty)
+ *   • thumbnail_square — Optional manually-cropped square thumbnail (listing views)
  *
  * Requires: Advanced Custom Fields PRO (or ACF Free ≥ 5.x)
  *
@@ -35,17 +35,16 @@ function float_reels_register_acf_fields() {
 		'title'  => 'Reel',
 		'fields' => array(
 
-			// Video file
+			// Cloudflare Stream Video ID
 			array(
-				'key'           => 'field_float_reel_video',
-				'label'         => 'Video file',
-				'name'          => 'reel_video',
-				'type'          => 'file',
-				'instructions'  => 'Upload an MP4 video in portrait format (9:16 ratio). Recommended: 1080 × 1920 px.',
+				'key'           => 'field_float_reel_stream_id',
+				'name'          => 'reel_stream_id',
+				'label'         => 'Cloudflare Stream Video ID',
+				'type'          => 'text',
+				'instructions'  => 'Paste the 32-character Video ID from the Cloudflare Stream dashboard (Stream → Videos → select the video → the ID is visible under "Video details", next to the copy icon). Example: 07529a56ff78eb51f6ee5e72f892b6dc',
 				'required'      => 1,
-				'return_format' => 'id',   // Returns attachment ID — use wp_get_attachment_url() to get the URL.
-				'library'       => 'all',
-				'mime_types'    => 'mp4',
+				'maxlength'     => 32,
+				'placeholder'   => '07529a56ff78eb51f6ee5e72f892b6dc',
 			),
 
 			// Kicker / label

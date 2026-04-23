@@ -5,6 +5,54 @@ All notable changes to **float Reels** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] — 2026-04-23
+
+### Fixed
+- **Empty / black video frame after poster on Chromium and Firefox.** `primeCarousel()` and `ensureVideoLoaded()` called `video.load()` right after `window.floatReels.attachHls()`. On the hls.js branch, that detaches the `MediaSource` that `attachMedia()` just wired up — the `<video>` element keeps a live but empty blob URL, the poster disappears, and playback silently renders nothing. `.load()` has been moved **inside** `attachHls()`, scoped to the native-HLS branch only (where it's still useful for the iOS Safari poster quirk). External callers must no longer pair `attachHls()` with a defensive `.load()`.
+- **First-slide play sometimes no-op on slow connections.** `video.play()` fires before hls.js has buffered a segment (or before Safari has fetched enough of the manifest); the returned promise rejects and no retry happens. New shared helper `window.floatReels.play( video )` retries once on `canplay`. The carousel and popup now route through it instead of calling `video.play().catch()` directly.
+
+### Changed
+- Bumped `float_REELS_VERSION` to `1.1.1` to force cache invalidation of `reels.js` for returning visitors.
+
+## [1.1.0] — 2026-04-23
+
+### Added
+- **Cloudflare Stream integration.** All reel videos are now delivered via adaptive HLS from Cloudflare Stream instead of direct MP4s hosted on WordPress. Mobile clients on constrained connections automatically fall back to a lower-bitrate variant; desktop pulls 1080p.
+- New ACF field `reel_stream_id` (required) — stores the 32-char Cloudflare Stream Video ID. Editors paste the ID from the Stream dashboard.
+- New public helpers:
+  - `float_reels_stream_subdomain()` — resolves the account's customer subdomain in order: `FLOAT_REELS_STREAM_SUBDOMAIN` constant → WP option `float_reels_stream_subdomain` → filter `float_reels_stream_subdomain`.
+  - `float_reels_stream_hls_url( $video_id )` — builds the HLS manifest URL.
+  - `float_reels_stream_thumbnail_url( $video_id, $width, $height, $fit, $time )` — builds an on-the-fly thumbnail URL. Cloudflare renders any size on demand, so no WP thumbnail regeneration is needed for Stream-hosted reels.
+- New shared JS helper `window.floatReels.attachHls( video )`:
+  - Safari / iOS — sets `video.src` to the manifest (native HLS playback).
+  - Chromium / Firefox — wires up hls.js with `capLevelToPlayerSize`, `maxBufferLength: 10`, and auto start level.
+  - Idempotent; tracks attachment via `video.__flReelsAttached`.
+- `hls.js` 1.5.15 enqueued from jsDelivr as a dependency of `float-reels-js`. Safari/iOS load but don't execute it (native HLS wins the feature-detection check).
+
+### Changed
+- Carousel and archive `<video>` elements now use `data-hls` (HLS manifest URL) instead of direct `src`. `preload="none"` preserved so viewport / interaction gating is unchanged.
+- Popup `<video>` elements use `data-hls` instead of `data-src`. Lazy-loading of active slide + neighbours unchanged.
+- Popup currentTime guard switched from `video.getAttribute('src')` to `video.__flReelsAttached` — the former is unreliable once hls.js attaches a MediaSource blob URL via the `.src` property.
+- Posters for carousel card, popup video, and desktop blurred background now come from Cloudflare's thumbnail API at the exact dimensions needed (540×960, 720×1280, 768w).
+
+### Removed
+- ACF field `reel_video` (file upload). Stream is the only supported source going forward.
+- Custom WP image size `float-reel-card` registration — Cloudflare generates thumbnails at any size on the fly.
+- Helper `float_reels_poster_url()` — no longer used.
+
+### Migration
+- Define the Cloudflare Stream customer subdomain in `wp-config.php`:
+  ```php
+  define( 'FLOAT_REELS_STREAM_SUBDOMAIN', 'customer-xxxxxxxxxxxx' );
+  ```
+  Alternatively set the `float_reels_stream_subdomain` WP option or use the filter of the same name.
+- For each reel in WP admin: open the post, paste the Cloudflare Stream Video ID into the new **Cloudflare Stream Video ID** field, save. Reels without an ID are skipped by the carousel and archive templates.
+
+### Performance
+- Video bytes scale with what the client can actually play (adaptive bitrate) — typically a 5–10× reduction in mobile payload vs. serving a single 1080p MP4.
+- Thumbnail delivery moves from WP's `wp-content/uploads/` (single-origin, often un-CDNed) to Cloudflare's global edge, with on-demand resizing.
+- Video segments served from Cloudflare's edge — TTFB drops substantially for international traffic.
+
 ## [1.0.4] — 2026-04-23
 
 ### Changed
@@ -69,6 +117,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Swiper 11 bundled locally (`assets/js/libs/`) with jsDelivr CDN fallback.
 - Activation hook flushes rewrite rules after registering the CPT.
 
+[1.1.1]: #111--2026-04-23
+[1.1.0]: #110--2026-04-23
 [1.0.4]: #104--2026-04-23
 [1.0.3]: #103--2026-04-23
 [1.0.2]: #102--2026-04-23

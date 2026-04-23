@@ -45,8 +45,12 @@ $float_reels_archive_query = new WP_Query( array(
 				$float_reel_id        = get_the_ID();
 				$float_reel_top_title = get_field( 'top_title' );
 				$float_reel_title     = get_field( 'reel_title' ) ?: get_the_title();
-				$float_reel_video_id  = get_field( 'reel_video' );
-				$float_reel_video_url = $float_reel_video_id ? wp_get_attachment_url( $float_reel_video_id ) : '';
+				$float_reel_stream_id = trim( (string) get_field( 'reel_stream_id' ) );
+				if ( ! $float_reel_stream_id ) {
+					continue; // Skip reels that haven't been migrated to Stream.
+				}
+				$float_reel_hls_url   = float_reels_stream_hls_url( $float_reel_stream_id );
+				$float_reel_poster    = float_reels_stream_thumbnail_url( $float_reel_stream_id, 540, 960, 'crop' );
 				$float_reel_uid       = 'reel-archive-' . $float_reel_i . '-title';
 			?>
 
@@ -57,11 +61,12 @@ $float_reels_archive_query = new WP_Query( array(
 
 						<video
 							class="reel-card__video"
-							src="<?php echo esc_url( $float_reel_video_url ); ?>"
+							data-hls="<?php echo esc_url( $float_reel_hls_url ); ?>"
+							poster="<?php echo esc_url( $float_reel_poster ); ?>"
 							muted
 							playsinline
 							loop
-							preload="metadata"
+							preload="none"
 						></video>
 
 						<!-- Play overlay -->

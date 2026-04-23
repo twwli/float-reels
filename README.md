@@ -2,6 +2,8 @@
 
 Standalone WordPress plugin that adds a short-form vertical video ("reel") feature to a site, independently of the active theme. Registers the `reel` custom post type, declares its ACF fields, ships a homepage carousel + full-screen popup viewer, and provides an archive template.
 
+Videos are delivered as adaptive HLS from **Cloudflare Stream** — mobile clients get a low-bitrate variant automatically, desktop gets 1080p, and thumbnails are generated on-demand by Cloudflare's edge.
+
 Built for [floatmagazin.de](https://floatmagazin.de) — portable to any WordPress 6.0+ install.
 
 ---
@@ -11,14 +13,45 @@ Built for [floatmagazin.de](https://floatmagazin.de) — portable to any WordPre
 - WordPress **6.0** or higher
 - PHP **8.0** or higher
 - [Advanced Custom Fields](https://www.advancedcustomfields.com/) 5.x or later (Free or Pro)
+- A [Cloudflare Stream](https://www.cloudflare.com/products/cloudflare-stream/) account with videos uploaded (used for both HLS playback and thumbnail generation)
 - [Swiper 11](https://swiperjs.com/) — bundled in `assets/js/libs/`, with a jsDelivr CDN fallback
+- [hls.js 1.5.15](https://github.com/video-dev/hls.js) — loaded from jsDelivr for non-Safari HLS playback
 
 ## Installation
 
 1. Copy the plugin folder to `wp-content/plugins/float-reels/`, or upload the ZIP via **Plugins → Add New → Upload**.
 2. Activate **float Reels** in the WordPress admin.
 3. Make sure ACF is active (the field groups are registered on `acf/init`).
-4. The archive is available at `/reels/` once permalinks are refreshed (the activation hook flushes rewrite rules automatically).
+4. Configure the Cloudflare Stream customer subdomain — see [Cloudflare Stream setup](#cloudflare-stream-setup) below.
+5. The archive is available at `/reels/` once permalinks are refreshed (the activation hook flushes rewrite rules automatically).
+
+## Cloudflare Stream setup
+
+Each reel references a Cloudflare Stream video by its 32-character Video ID. The plugin builds playback and thumbnail URLs against your account's **customer subdomain** (e.g. `customer-rt321xkquwe662b7`).
+
+Configure the subdomain once, in order of precedence:
+
+1. **Constant in `wp-config.php`** (recommended):
+
+   ```php
+   define( 'FLOAT_REELS_STREAM_SUBDOMAIN', 'customer-xxxxxxxxxxxx' );
+   ```
+
+2. **WordPress option** (if you prefer the DB):
+
+   ```php
+   update_option( 'float_reels_stream_subdomain', 'customer-xxxxxxxxxxxx' );
+   ```
+
+3. **Filter** (for multi-site / conditional scenarios):
+
+   ```php
+   add_filter( 'float_reels_stream_subdomain', fn() => 'customer-xxxxxxxxxxxx' );
+   ```
+
+You can find your customer subdomain in the Cloudflare dashboard under **Stream → any video → playback URL** — it's the prefix before `.cloudflarestream.com`.
+
+For each reel, paste the Video ID (shown in the Stream dashboard under **Video details**) into the **Cloudflare Stream Video ID** field on the reel post. Reels without an ID are skipped by the carousel and archive templates.
 
 ## What the plugin registers
 
@@ -41,30 +74,21 @@ Declared in `includes/acf-fields.php` as local field groups (version-controlled,
 
 | Field              | Type  | Required | Notes                                                                 |
 | ------------------ | ----- | -------- | --------------------------------------------------------------------- |
-| `reel_video`       | File  | yes      | MP4, 9:16, recommended 1080 × 1920. Returns attachment **ID**.        |
+| `reel_stream_id`   | Text  | yes      | 32-char Cloudflare Stream Video ID (e.g. `07529a56ff78eb51f6ee5e72f892b6dc`). |
 | `top_title`        | Text  | no       | Kicker / small-caps label above the title. Max 60 chars.              |
 | `reel_title`       | Text  | no       | Display title. Falls back to `post_title` when empty.                 |
 | `thumbnail_square` | Image | no       | Optional manual square crop (min 800 × 800) for listing views.        |
 
-## Image sizes
+### Public helper functions
 
-The plugin registers one custom size via `add_image_size()`:
+Exposed by `float-reels.php` for use in templates or other plugins:
 
-| Name               | Dimensions   | Crop | Used for                        |
-| ------------------ | ------------ | ---- | ------------------------------- |
-| `float-reel-card`  | 540 × 960 px | yes  | Carousel card video `poster`    |
-
-The popup `<video poster>` uses the default `large` size; the desktop blurred background uses `medium_large`.
-
-**After activating or updating the plugin, regenerate thumbnails** so the new size is created for existing reel featured images:
-
-```
-wp media regenerate --yes
-```
-
-Or install [Regenerate Thumbnails](https://wordpress.org/plugins/regenerate-thumbnails/) and run **Tools → Regenerate Thumbnails**.
-
-Until regeneration, existing reels degrade automatically to `medium_large` via `float_reels_poster_url()` — usable, but not optimal.
+| Function                                                         | Returns                                                              |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `float_reels_stream_subdomain()`                                 | Configured Cloudflare Stream customer subdomain.                     |
+| `float_reels_stream_hls_url( $video_id )`                        | HLS manifest URL (`…/manifest/video.m3u8`).                          |
+| `float_reels_stream_thumbnail_url( $video_id, $w, $h, $fit, $t )` | On-the-fly thumbnail URL at any requested size.                      |
+| `float_reels_carousel()`                                         | Renders the homepage carousel + popup partial.                       |
 
 ## Usage
 
@@ -87,32 +111,41 @@ The plugin hooks `template_include` and serves `templates/archive-reel.php` for 
 `wp_enqueue_scripts` registers and enqueues:
 
 - `swiper-css` / `swiper-js` — local copy from `assets/js/libs/` when present, else jsDelivr CDN
+- `hls-js` — `hls.js` 1.5.15 from jsDelivr (Safari / iOS load but don't execute it — native HLS wins)
 - `float-reels-css` — `assets/css/reels.css`
-- `float-reels-js`  — `assets/js/reels.js`
+- `float-reels-js`  — `assets/js/reels.js` (depends on `swiper-js` + `hls-js`)
 
 Version constant `float_REELS_VERSION` is used as the cache-buster query string — bump it in `float-reels.php` when you ship CSS/JS changes.
 
 ## How the viewer works
 
-`assets/js/reels.js` is split into three independent IIFE modules:
+`assets/js/reels.js` is split into three independent IIFE modules, plus a shared helper:
 
-1. **Reels slider** — horizontal Swiper on the homepage. The active slide's video plays muted; non-active slides pause and reset to `currentTime = 0`. Loading is **viewport-gated** via `IntersectionObserver`: `<video>` elements ship with `preload="none"` and are only upgraded to `preload="metadata"` + `.load()` + `.play()` when the section comes within 200 px of the viewport. When the section scrolls off-screen, videos are paused to stop progressive download.
-2. **Reels popup** — full-screen Swiper opened when a carousel item is clicked (or `Enter` / `Space` on a focused tile). Direction adapts to viewport: **vertical** under 768 px, **horizontal** above, with prev/next buttons on desktop. Mute state persists across slides. Pressing `Escape`, clicking the close button, or reaching past the last/first slide via the nav arrows closes the popup.
-3. **Reels archive** — click-to-play/pause on `/reels/` tiles.
+### Shared HLS helper
 
-### Popup video lazy-loading
+`window.floatReels.attachHls( video )` wires a `<video>` element to its Cloudflare Stream manifest (from the `data-hls` attribute):
 
-To avoid preloading the same video twice (once in the carousel, once in the popup) the popup `<video>` elements are rendered with `data-src` and `preload="none"`. The popup module hydrates videos on demand: when the popup opens, and on every slide change, it sets `src` on the active slide plus the immediate neighbours (prev/next). This keeps navigation smooth while halving the initial video payload on page load.
+- **Safari / iOS** — sets `video.src` to the manifest (native HLS playback).
+- **Chromium / Firefox** — instantiates an `Hls` instance with `capLevelToPlayerSize`, `maxBufferLength: 10`, and auto start level, then calls `attachMedia()`.
+- Idempotent — tracked via `video.__flReelsAttached`, safe to call repeatedly.
 
-### iOS quirk
+### Modules
 
-iOS Safari occasionally ignores `preload="metadata"` and fails to render the poster frame. A small IIFE at the top of `reels.js` detects iOS, waits for `DOMContentLoaded`, and calls `.load()` on every `.reel-card__video` to force the poster to appear.
+1. **Reels slider** — horizontal Swiper on the homepage. Loading is **viewport-gated** via `IntersectionObserver`: `<video>` elements ship with `preload="none"` and `data-hls` only — no network request fires at all until the section comes within 200 px of the viewport. On entry, `attachHls()` + `.play()` runs on the active slide; neighbours are primed on `slideChangeTransitionEnd`. When the section scrolls off-screen, videos are paused to stop progressive download.
+2. **Reels popup** — full-screen Swiper opened when a carousel item is clicked (or `Enter` / `Space` on a focused tile). Direction adapts to viewport: **vertical** under 768 px, **horizontal** above, with prev/next buttons on desktop. Popup videos hydrate on demand: when the popup opens, and on every slide change, `attachHls()` runs on the active slide + immediate neighbours. Mute state persists across slides. Pressing `Escape`, clicking the close button, or reaching past the last/first slide via the nav arrows closes the popup.
+3. **Reels archive** — click-to-play/pause on `/reels/` tiles; `attachHls()` runs on first interaction.
+
+### Posters & thumbnails
+
+All three poster assets (carousel card 540×960, popup video 720×1280, desktop blurred background 768w) are served by Cloudflare's on-the-fly thumbnail API. No WordPress image regeneration is required.
+
+The desktop blurred background is passed to CSS through a `--reels-popup-bg` custom property on the element, with `background-image` only applied inside the `@media (min-width: 768px)` rule — mobile browsers never fetch it.
 
 ## File layout
 
 ```
 float-reels/
-├── float-reels.php              # Bootstrap, constants, enqueue, archive filter, helper fn
+├── float-reels.php              # Bootstrap, Stream helpers, enqueue, archive filter
 ├── includes/
 │   ├── cpt.php                  # Register the `reel` CPT
 │   └── acf-fields.php           # ACF local field groups
@@ -122,7 +155,7 @@ float-reels/
 ├── assets/
 │   ├── css/reels.css            # Component styles
 │   └── js/
-│       ├── reels.js             # Slider, popup, archive modules
+│       ├── reels.js             # Slider, popup, archive modules + attachHls helper
 │       └── libs/                # Swiper 11 bundle (optional local copy)
 ├── CHANGELOG.md
 └── README.md
@@ -130,7 +163,8 @@ float-reels/
 
 ## Development notes
 
-- The ACF field group for `reel_video` stores the **attachment ID**, not the URL — use `wp_get_attachment_url()` on the retrieved value, as `templates/reels-carousel.php` does.
+- The carousel and popup `<video>` elements use `data-hls` (not `src`) and `preload="none"`. Don't set `src` directly — always route through `window.floatReels.attachHls()` so the native-HLS vs hls.js branching is handled in one place.
+- Treat `video.__flReelsAttached` as the source of truth for "is this video hydrated?" — the `src` attribute becomes unreliable once hls.js attaches a `MediaSource` blob URL.
 - All query strings are escaped via `esc_url`, `esc_attr`, `esc_html` — keep it that way when extending templates.
 - The `reel` CPT is intentionally excluded from the REST API; enable it in `includes/cpt.php` if a Gutenberg / headless workflow becomes necessary.
 - Strings are wrapped in `__()` / `esc_attr_e()` under the `float-reels` text domain. Translations go in `languages/` (path defined by the plugin header).
