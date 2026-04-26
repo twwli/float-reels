@@ -3,7 +3,7 @@
  * Plugin Name:       float Reels
  * Plugin URI:        https://floatmagazin.de
  * Description:       Standalone Reels functionality — CPT, ACF fields, carousel, popup and archive. Works independently of any theme.
- * Version:           1.1.1
+ * Version:           1.2.0
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * Author:            float News
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-define( 'float_REELS_VERSION', '1.1.1' );
+define( 'float_REELS_VERSION', '1.2.0' );
 define( 'float_REELS_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'float_REELS_URL',     plugin_dir_url( __FILE__ ) );
 

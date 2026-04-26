@@ -6,10 +6,12 @@
  * version-controlled and portable across environments.
  *
  * Fields registered here:
- *   • reel_stream_id   — Cloudflare Stream Video ID (required)
- *   • top_title        — Optional kicker / label shown above the reel title
- *   • reel_title       — Display title (falls back to post title when empty)
- *   • thumbnail_square — Optional manually-cropped square thumbnail (listing views)
+ *   • reel_stream_id          — Cloudflare Stream Video ID (required)
+ *   • top_title               — Optional kicker / label shown above the reel title
+ *   • reel_title              — Display title (falls back to post title when empty)
+ *   • reel_carousel_thumbnail — Optional image overlaid on the carousel card
+ *                               (fades out on hover / tap to reveal the video)
+ *   • thumbnail_square        — Optional manually-cropped square thumbnail (listing views)
  *
  * Requires: Advanced Custom Fields PRO (or ACF Free ≥ 5.x)
  *
@@ -66,6 +68,22 @@ function float_reels_register_acf_fields() {
 				'type'         => 'text',
 				'instructions' => 'Display title shown on the reel card and in the popup. Falls back to the post title when left empty.',
 				'required'     => 0,
+			),
+
+			// Carousel thumbnail overlay
+			array(
+				'key'           => 'field_float_reel_carousel_thumbnail',
+				'label'         => 'Carousel thumbnail (optional)',
+				'name'          => 'reel_carousel_thumbnail',
+				'type'          => 'image',
+				'instructions'  => 'Image displayed on top of the video in the homepage carousel. Fades out on mouse hover (desktop) or tap (mobile) to reveal the video, which only starts playing on that interaction. Recommended ratio 9:16, min 540 × 960 px. Leave empty to show the video poster directly.',
+				'required'      => 0,
+				'return_format' => 'array',
+				'preview_size'  => 'medium',
+				'library'       => 'all',
+				'min_width'     => 540,
+				'min_height'    => 960,
+				'mime_types'    => 'jpg, jpeg, png, webp',
 			),
 
 		),

@@ -34,18 +34,39 @@ if ( $float_reels_query->have_posts() ) {
 			continue; // Skip reels that haven't been migrated to Stream.
 		}
 
+		// Optional carousel thumbnail overlay (ACF image, 9:16 recommended).
+		// When set, it covers the <video> until the user hovers (desktop) or
+		// taps (mobile) — only then does the video start downloading + playing.
+		$float_reel_thumb       = get_field( 'reel_carousel_thumbnail' );
+		$float_reel_thumb_url   = '';
+		$float_reel_thumb_srcset = '';
+		$float_reel_thumb_alt   = '';
+		if ( is_array( $float_reel_thumb ) && ! empty( $float_reel_thumb['ID'] ) ) {
+			$float_reel_thumb_id     = (int) $float_reel_thumb['ID'];
+			$float_reel_thumb_url    = wp_get_attachment_image_url( $float_reel_thumb_id, 'medium_large' );
+			if ( ! $float_reel_thumb_url ) {
+				$float_reel_thumb_url = $float_reel_thumb['url'];
+			}
+			$float_reel_thumb_srcset = (string) wp_get_attachment_image_srcset( $float_reel_thumb_id, 'medium_large' );
+			$float_reel_thumb_alt    = isset( $float_reel_thumb['alt'] ) ? (string) $float_reel_thumb['alt'] : '';
+		}
+
 		$float_reels_data[] = array(
-			'id'           => get_the_ID(),
-			'top_title'    => get_field( 'top_title' ),
-			'title'        => get_field( 'reel_title' ) ?: get_the_title(),
-			'hls_url'      => float_reels_stream_hls_url( $float_reel_stream_id ),
+			'id'             => get_the_ID(),
+			'top_title'      => get_field( 'top_title' ),
+			'title'          => get_field( 'reel_title' ) ?: get_the_title(),
+			'hls_url'        => float_reels_stream_hls_url( $float_reel_stream_id ),
 			// Posters served on-demand by Cloudflare at the exact size we need:
 			//   - poster_card  : carousel card  (540×960 cropped 9:16)
 			//   - poster_popup : popup <video>  (720×1280, DPR 2× on a phone)
 			//   - poster_bg    : popup desktop bg (768w, blurred — ratio irrelevant)
-			'poster_card'  => float_reels_stream_thumbnail_url( $float_reel_stream_id, 540, 960, 'crop' ),
-			'poster_popup' => float_reels_stream_thumbnail_url( $float_reel_stream_id, 720, 1280, 'crop' ),
-			'poster_bg'    => float_reels_stream_thumbnail_url( $float_reel_stream_id, 768, null, 'cover' ),
+			'poster_card'    => float_reels_stream_thumbnail_url( $float_reel_stream_id, 540, 960, 'crop' ),
+			'poster_popup'   => float_reels_stream_thumbnail_url( $float_reel_stream_id, 720, 1280, 'crop' ),
+			'poster_bg'      => float_reels_stream_thumbnail_url( $float_reel_stream_id, 768, null, 'cover' ),
+			// Optional ACF carousel thumbnail overlay.
+			'thumb_url'      => $float_reel_thumb_url,
+			'thumb_srcset'   => $float_reel_thumb_srcset,
+			'thumb_alt'      => $float_reel_thumb_alt,
 		);
 	}
 	wp_reset_postdata();
@@ -86,8 +107,20 @@ if ( empty( $float_reels_data ) ) {
 							playsinline
 							loop
 							preload="none"
-						>
-					</video>
+						></video>
+
+						<?php if ( $float_reel['thumb_url'] ) : ?>
+						<!-- Thumbnail overlay (fades out on hover / tap to reveal the video) -->
+						<img
+							class="reel-card__thumbnail"
+							src="<?php echo esc_url( $float_reel['thumb_url'] ); ?>"
+							<?php if ( $float_reel['thumb_srcset'] ) : ?>srcset="<?php echo esc_attr( $float_reel['thumb_srcset'] ); ?>"<?php endif; ?>
+							sizes="(min-width: 768px) 33vw, 60vw"
+							alt="<?php echo esc_attr( $float_reel['thumb_alt'] ); ?>"
+							loading="lazy"
+							decoding="async"
+						/>
+						<?php endif; ?>
 
 						<!-- Play overlay -->
 						<span class="video__play" aria-hidden="true">

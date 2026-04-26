@@ -85,7 +85,24 @@ window.floatReels.play = function (video) {
 };
 
 /* ==========================================================================
-   1. REELS SLIDER
+   1. REELS SLIDER — interaction-gated playback
+   --------------------------------------------------------------------------
+   Carousel cards may carry an ACF thumbnail overlay (`<img.reel-card__thumb-
+   nail>`) sitting on top of the <video>. Both layers ship with `preload="none"`
+   and no HLS source attached. The video stays inert until the user actually
+   interacts with the card:
+
+     - Desktop: mouseenter on a card triggers attach + play; mouseleave pauses
+       and rewinds. The thumbnail fades via CSS (`is-revealed` class + the
+       `:hover` fallback in the stylesheet).
+     - Mobile : tap fires both mouseenter (sticky hover) and click. We hook
+       `click` too as a defensive backup so the reveal happens even on
+       browsers that don't synthesise hover events on tap. The popup module
+       (#2) is what actually opens the full-screen viewer on click — these
+       two effects cohabit.
+
+   Net effect: zero video bytes for users who scroll past the section without
+   ever interacting. Only the lightweight thumbnail/poster image is fetched.
    ========================================================================== */
 (function () {
   'use strict';
@@ -93,6 +110,9 @@ window.floatReels.play = function (video) {
   var container = document.querySelector('.reels-carousel');
   if (!container || !container.querySelector('.swiper-wrapper')) return;
 
+  // Swiper still drives navigation between cards; we just don't auto-play
+  // anything on slide change anymore.
+  // eslint-disable-next-line no-new, no-unused-vars
   var reelsSwiper = new Swiper(container, {
     slidesPerView: 'auto',
     spaceBetween:  0,
@@ -100,70 +120,53 @@ window.floatReels.play = function (video) {
     a11y:          true,
   });
 
-  // ── Viewport-gated loading ─────────────────────────────────────────────────
-  // Carousel <video> elements ship with `preload="none"` + `data-hls` so
-  // nothing touches the network until the section actually enters the
-  // viewport. On first intersection we upgrade preload to "metadata", wire
-  // up the HLS source via attachHls() (native on Safari, hls.js elsewhere)
-  // and start the active video. While the section is off-screen we pause
-  // to save CPU + bandwidth.
-  var primed = false;
-
-  function syncVideo(index) {
-    container.querySelectorAll('.reels__item').forEach(function (item, i) {
-      var video = item.querySelector('video');
-      if (!video) return;
-      if (i === index) {
-        window.floatReels.play(video);
-      } else {
-        video.pause();
-        if (video.__flReelsAttached) video.currentTime = 0;
-      }
-    });
+  function revealCard(card) {
+    if (!card || card.classList.contains('is-revealed')) return;
+    card.classList.add('is-revealed');
+    var video = card.querySelector('video');
+    if (!video) return;
+    video.setAttribute('preload', 'metadata');
+    window.floatReels.attachHls(video);
+    window.floatReels.play(video);
   }
 
-  function pauseAll() {
-    container.querySelectorAll('.reels__item video').forEach(function (v) {
-      v.pause();
-    });
+  function hideCard(card) {
+    if (!card || !card.classList.contains('is-revealed')) return;
+    card.classList.remove('is-revealed');
+    var video = card.querySelector('video');
+    if (!video) return;
+    video.pause();
+    if (video.__flReelsAttached) video.currentTime = 0;
   }
 
-  function primeCarousel() {
-    if (primed) return;
-    primed = true;
-    container.querySelectorAll('.reels__item video').forEach(function (v) {
-      v.setAttribute('preload', 'metadata');
-      // attachHls() handles .load() internally for the native-HLS path.
-      // Never add an external .load() here — it would detach the MediaSource
-      // wired up by hls.js on Chromium / Firefox.
-      window.floatReels.attachHls(v);
-    });
+  function hideAllCards() {
+    container.querySelectorAll('.reel-card').forEach(hideCard);
   }
 
-  reelsSwiper.on('slideChangeTransitionEnd', function () {
-    // Keyboard / touch users could interact before the observer fires — prime
-    // lazily in that case too.
-    if (!primed) primeCarousel();
-    syncVideo(reelsSwiper.activeIndex);
+  // ── Wire up reveal/hide on each card ────────────────────────────────────
+  container.querySelectorAll('.reels__item').forEach(function (item) {
+    var card = item.querySelector('.reel-card');
+    if (!card) return;
+
+    // Desktop hover (also fires on touchscreens via sticky-hover emulation).
+    item.addEventListener('mouseenter', function () { revealCard(card); });
+    item.addEventListener('mouseleave', function () { hideCard(card); });
+
+    // Belt-and-braces for touch browsers that skip mouseenter on tap.
+    // revealCard() is idempotent, so a duplicate fire is harmless.
+    item.addEventListener('click', function () { revealCard(card); });
   });
 
+  // ── Pause everything when the section scrolls out of view ───────────────
+  // Prevents a hovered/tapped card from continuing to stream while it's no
+  // longer on screen.
   if ('IntersectionObserver' in window) {
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          primeCarousel();
-          syncVideo(reelsSwiper.activeIndex);
-        } else if (primed) {
-          pauseAll();
-        }
+        if (!entry.isIntersecting) hideAllCards();
       });
-    }, { rootMargin: '200px 0px', threshold: 0.1 });
+    }, { rootMargin: '0px', threshold: 0 });
     io.observe(container);
-  } else {
-    // Legacy browsers (no IntersectionObserver): fall back to the old eager
-    // behaviour so nothing breaks.
-    primeCarousel();
-    syncVideo(0);
   }
 })();
 

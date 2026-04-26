@@ -117,6 +117,45 @@
 }
 
 /* ==========================================================================
+   Carousel thumbnail overlay
+   --------------------------------------------------------------------------
+   Optional <img> sitting on top of the <video> in carousel cards. Provided
+   per-reel via the `reel_carousel_thumbnail` ACF field. Fades out when the
+   card is in the "revealed" state (toggled by JS on mouseenter / tap), and
+   also on `:hover` for hover-capable pointers as a CSS-only safety net.
+
+   Stacking inside `.reel-card__media`:
+     <video>                  — base layer (paused until reveal)
+     <img.reel-card__thumbnail> — covers the video by default
+     ::after                  — semi-transparent dark tint for legibility
+     .video__play, .reel-card__overlay (z-index: 1) — on top
+   ========================================================================== */
+.reels-carousel .reel-card__thumbnail {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.25s ease-out;
+    pointer-events: none;
+}
+
+.reels-carousel .reel-card.is-revealed .reel-card__thumbnail {
+    opacity: 0;
+}
+
+.reels-carousel .reel-card.is-revealed .video__play {
+    opacity: 0;
+}
+
+@media (hover: hover) {
+    .reels-carousel .reel-card:hover .reel-card__thumbnail,
+    .reels-carousel .reel-card:hover .video__play {
+        opacity: 0;
+    }
+}
+
+/* ==========================================================================
    Reels Carousel Block (homepage)
    ========================================================================== */
 
