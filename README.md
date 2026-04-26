@@ -72,12 +72,13 @@ Guarded behind `post_type_exists()` — if the theme already registers a `reel` 
 
 Declared in `includes/acf-fields.php` as local field groups (version-controlled, no admin export needed).
 
-| Field              | Type  | Required | Notes                                                                 |
-| ------------------ | ----- | -------- | --------------------------------------------------------------------- |
-| `reel_stream_id`   | Text  | yes      | 32-char Cloudflare Stream Video ID (e.g. `07529a56ff78eb51f6ee5e72f892b6dc`). |
-| `top_title`        | Text  | no       | Kicker / small-caps label above the title. Max 60 chars.              |
-| `reel_title`       | Text  | no       | Display title. Falls back to `post_title` when empty.                 |
-| `thumbnail_square` | Image | no       | Optional manual square crop (min 800 × 800) for listing views.        |
+| Field                      | Type  | Required | Notes                                                                                                                                              |
+| -------------------------- | ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reel_stream_id`           | Text  | yes      | 32-char Cloudflare Stream Video ID (e.g. `07529a56ff78eb51f6ee5e72f892b6dc`).                                                                       |
+| `top_title`                | Text  | no       | Kicker / small-caps label above the title. Max 60 chars.                                                                                            |
+| `reel_title`               | Text  | no       | Display title. Falls back to `post_title` when empty.                                                                                               |
+| `reel_carousel_thumbnail`  | Image | no       | 9:16 image overlaid on the homepage carousel card. Fades out on hover (desktop) / tap (mobile) to reveal the video. Min 540 × 960. JPG/PNG/WebP.   |
+| `thumbnail_square`         | Image | no       | Optional manual square crop (min 800 × 800) for listing views.                                                                                      |
 
 ### Public helper functions
 
@@ -131,7 +132,7 @@ Version constant `float_REELS_VERSION` is used as the cache-buster query string 
 
 ### Modules
 
-1. **Reels slider** — horizontal Swiper on the homepage. Loading is **viewport-gated** via `IntersectionObserver`: `<video>` elements ship with `preload="none"` and `data-hls` only — no network request fires at all until the section comes within 200 px of the viewport. On entry, `attachHls()` + `.play()` runs on the active slide; neighbours are primed on `slideChangeTransitionEnd`. When the section scrolls off-screen, videos are paused to stop progressive download.
+1. **Reels slider** — horizontal Swiper on the homepage with **interaction-gated playback**. `<video>` elements ship with `preload="none"` and `data-hls` only — no network request fires until the user actually engages with a card. On `mouseenter` (desktop hover) or `click` (mobile tap), the carousel module adds an `is-revealed` class to the card, calls `attachHls()` and starts playback. `mouseleave` pauses and rewinds. When an ACF carousel thumbnail is set, that's what's visible in the default state; CSS fades it on `is-revealed` (and on `:hover` under `@media (hover: hover)` as a safety net). An `IntersectionObserver` is kept solely to pause revealed cards if the section scrolls out of view.
 2. **Reels popup** — full-screen Swiper opened when a carousel item is clicked (or `Enter` / `Space` on a focused tile). Direction adapts to viewport: **vertical** under 768 px, **horizontal** above, with prev/next buttons on desktop. Popup videos hydrate on demand: when the popup opens, and on every slide change, `attachHls()` runs on the active slide + immediate neighbours. Mute state persists across slides. Pressing `Escape`, clicking the close button, or reaching past the last/first slide via the nav arrows closes the popup.
 3. **Reels archive** — click-to-play/pause on `/reels/` tiles; `attachHls()` runs on first interaction.
 
