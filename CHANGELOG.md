@@ -5,6 +5,27 @@ All notable changes to **float Reels** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-04-26
+
+### Added
+- **Carousel thumbnail overlay.** New optional ACF field `reel_carousel_thumbnail` (image, 9:16 recommended, min 540 × 960) lets editors layer a curated still image on top of the homepage carousel video. Renders as `<img class="reel-card__thumbnail">` inside `.reel-card__media`, with a `srcset` from WordPress's responsive image API.
+- New CSS state classes:
+  - `.reel-card.is-revealed .reel-card__thumbnail` — fades the overlay to `opacity: 0`.
+  - `.reel-card.is-revealed .video__play` — also fades the play-button glyph so the playing video reads cleanly.
+  - `:hover` fallback under `@media (hover: hover)` for desktop pointers, in case the JS reveal listener hasn't attached yet.
+
+### Changed
+- **Carousel playback is now interaction-gated.** Cards no longer auto-play on viewport entry. Mouse hover (desktop) or tap (mobile) on a card adds the `is-revealed` class, attaches the HLS source via `floatReels.attachHls()`, and starts playback. Hovering away pauses and rewinds. The popup-on-click behaviour is unchanged — both effects fire together on touch.
+- IntersectionObserver in the carousel module is now exit-only: it pauses any revealed card when the section scrolls out of view, but never auto-plays on entry.
+- Removed `primeCarousel()`, `syncVideo()`, and `pauseAll()` helpers — replaced by the leaner `revealCard()` / `hideCard()` pair.
+
+### Performance
+- Users who scroll past the Reels section without hovering or tapping pay **zero** video bytes — only the thumbnail (or poster fallback) is fetched. On mobile data this typically saves several MB per page load when six reels are configured.
+- HLS manifests are loaded on-demand per card, not all at once on viewport entry, smoothing first-paint network activity.
+
+### Migration
+- For each reel where the client wants a curated overlay, open the post in WP admin and upload an image into the new **Carousel thumbnail** field. Reels left without an overlay continue to display the Cloudflare Stream poster directly — no breakage.
+
 ## [1.1.1] — 2026-04-23
 
 ### Fixed
@@ -117,6 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Swiper 11 bundled locally (`assets/js/libs/`) with jsDelivr CDN fallback.
 - Activation hook flushes rewrite rules after registering the CPT.
 
+[1.2.0]: #120--2026-04-26
 [1.1.1]: #111--2026-04-23
 [1.1.0]: #110--2026-04-23
 [1.0.4]: #104--2026-04-23
