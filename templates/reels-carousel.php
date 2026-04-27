@@ -51,10 +51,17 @@ if ( $float_reels_query->have_posts() ) {
 			$float_reel_thumb_alt    = isset( $float_reel_thumb['alt'] ) ? (string) $float_reel_thumb['alt'] : '';
 		}
 
+		// `title` is the editor-set value only — empty when the ACF field is
+		// blank, in which case the templates simply don't render a heading.
+		// `aria_label` keeps a fallback to the post title so screen-reader
+		// users still hear something meaningful on each slide.
+		$float_reel_display_title = (string) get_field( 'reel_title' );
+
 		$float_reels_data[] = array(
 			'id'             => get_the_ID(),
 			'top_title'      => get_field( 'top_title' ),
-			'title'          => get_field( 'reel_title' ) ?: get_the_title(),
+			'title'          => $float_reel_display_title,
+			'aria_label'     => $float_reel_display_title !== '' ? $float_reel_display_title : get_the_title(),
 			'hls_url'        => float_reels_stream_hls_url( $float_reel_stream_id ),
 			// Posters served on-demand by Cloudflare at the exact size we need:
 			//   - poster_card  : carousel card  (540×960 cropped 9:16)
@@ -94,9 +101,9 @@ if ( empty( $float_reels_data ) ) {
 				role="listitem"
 				data-reel-index="<?php echo esc_attr( $float_reel_index ); ?>"
 				tabindex="0"
-				aria-label="<?php echo esc_attr( $float_reel['title'] ); ?>"
+				aria-label="<?php echo esc_attr( $float_reel['aria_label'] ); ?>"
 			>
-				<article class="reel-card" aria-labelledby="<?php echo esc_attr( $float_reel_uid ); ?>">
+				<article class="reel-card"<?php if ( $float_reel['title'] ) : ?> aria-labelledby="<?php echo esc_attr( $float_reel_uid ); ?>"<?php endif; ?>>
 					<div class="reel-card__media">
 
 						<video
@@ -122,29 +129,37 @@ if ( empty( $float_reels_data ) ) {
 						/>
 						<?php endif; ?>
 
-						<!-- Play overlay -->
+						<!-- Play overlay 
 						<span class="video__play" aria-hidden="true">
 							<span class="video__play-icon">
 								<svg fill="none" height="14" viewBox="0 0 11 14" width="11" xmlns="http://www.w3.org/2000/svg"><path d="m0 14v-14l11 7z" fill="#eef2f6"/></svg>
 							</span>
-						</span>
+						</span> -->
 
 						<!-- Bottom overlay -->
+						<?php if ( $float_reel['top_title'] || $float_reel['title'] ) : ?>
 						<span class="reel-card__overlay" aria-hidden="true">
 							<?php if ( $float_reel['top_title'] ) : ?>
 							<span class="reel-card__kicker top-title"><?php echo esc_html( $float_reel['top_title'] ); ?></span>
 							<?php endif; ?>
+							<?php if ( $float_reel['title'] ) : ?>
 							<h3 class="reel-card__title text-600" id="<?php echo esc_attr( $float_reel_uid ); ?>"><?php echo esc_html( $float_reel['title'] ); ?></h3>
+							<?php endif; ?>
 						</span>
+						<?php endif; ?>
 					</div>
 
+					<?php if ( $float_reel['top_title'] || $float_reel['title'] ) : ?>
 					<!-- Accessible text (visually hidden) -->
 					<div class="a11y-visually-hidden">
 						<?php if ( $float_reel['top_title'] ) : ?>
 						<p class="reel-card__kicker"><?php echo esc_html( $float_reel['top_title'] ); ?></p>
 						<?php endif; ?>
+						<?php if ( $float_reel['title'] ) : ?>
 						<h3><?php echo esc_html( $float_reel['title'] ); ?></h3>
+						<?php endif; ?>
 					</div>
+					<?php endif; ?>
 				</article>
 			</div>
 			<?php endforeach; ?>
@@ -213,12 +228,16 @@ if ( empty( $float_reels_data ) ) {
 							preload="none"
 						></video>
 
+						<?php if ( $float_popup_reel['top_title'] || $float_popup_reel['title'] ) : ?>
 						<div class="reels-popup__overlay" aria-hidden="true">
 							<?php if ( $float_popup_reel['top_title'] ) : ?>
 							<span class="reels-popup__kicker"><?php echo esc_html( $float_popup_reel['top_title'] ); ?></span>
 							<?php endif; ?>
+							<?php if ( $float_popup_reel['title'] ) : ?>
 							<p class="reels-popup__title"><?php echo esc_html( $float_popup_reel['title'] ); ?></p>
+							<?php endif; ?>
 						</div>
+						<?php endif; ?>
 					</div>
 
 				</div>

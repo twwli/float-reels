@@ -42,20 +42,27 @@ $float_reels_archive_query = new WP_Query( array(
 
 			<?php $float_reel_i = 1;
 			while ( $float_reels_archive_query->have_posts() ) : $float_reels_archive_query->the_post();
-				$float_reel_id        = get_the_ID();
-				$float_reel_top_title = get_field( 'top_title' );
-				$float_reel_title     = get_field( 'reel_title' ) ?: get_the_title();
-				$float_reel_stream_id = trim( (string) get_field( 'reel_stream_id' ) );
+				$float_reel_id         = get_the_ID();
+				$float_reel_top_title  = get_field( 'top_title' );
+				// Editor-set title only — no fallback to the post title.
+				// The heading element is skipped when this is empty.
+				$float_reel_title      = (string) get_field( 'reel_title' );
+				$float_reel_aria_label = $float_reel_title !== '' ? $float_reel_title : get_the_title();
+				$float_reel_stream_id  = trim( (string) get_field( 'reel_stream_id' ) );
 				if ( ! $float_reel_stream_id ) {
 					continue; // Skip reels that haven't been migrated to Stream.
 				}
-				$float_reel_hls_url   = float_reels_stream_hls_url( $float_reel_stream_id );
-				$float_reel_poster    = float_reels_stream_thumbnail_url( $float_reel_stream_id, 540, 960, 'crop' );
-				$float_reel_uid       = 'reel-archive-' . $float_reel_i . '-title';
+				$float_reel_hls_url    = float_reels_stream_hls_url( $float_reel_stream_id );
+				$float_reel_poster     = float_reels_stream_thumbnail_url( $float_reel_stream_id, 540, 960, 'crop' );
+				$float_reel_uid        = 'reel-archive-' . $float_reel_i . '-title';
 			?>
 
 			<li class="reels-archive__item">
-				<article class="reel-card" aria-labelledby="<?php echo esc_attr( $float_reel_uid ); ?>" data-reel-archive>
+				<article
+					class="reel-card"
+					<?php if ( $float_reel_title ) : ?>aria-labelledby="<?php echo esc_attr( $float_reel_uid ); ?>"<?php else : ?>aria-label="<?php echo esc_attr( $float_reel_aria_label ); ?>"<?php endif; ?>
+					data-reel-archive
+				>
 
 					<div class="reel-card__media">
 
@@ -77,22 +84,30 @@ $float_reels_archive_query = new WP_Query( array(
 						</span>
 
 						<!-- Bottom overlay -->
+						<?php if ( $float_reel_top_title || $float_reel_title ) : ?>
 						<span class="reel-card__overlay" aria-hidden="true">
 							<?php if ( $float_reel_top_title ) : ?>
 							<span class="reel-card__kicker top-title"><?php echo esc_html( $float_reel_top_title ); ?></span>
 							<?php endif; ?>
+							<?php if ( $float_reel_title ) : ?>
 							<h2 class="reel-card__title text-600" id="<?php echo esc_attr( $float_reel_uid ); ?>"><?php echo esc_html( $float_reel_title ); ?></h2>
+							<?php endif; ?>
 						</span>
+						<?php endif; ?>
 
 					</div>
 
+					<?php if ( $float_reel_top_title || $float_reel_title ) : ?>
 					<!-- Accessible text (visually hidden) -->
 					<div class="a11y-visually-hidden">
 						<?php if ( $float_reel_top_title ) : ?>
 						<p><?php echo esc_html( $float_reel_top_title ); ?></p>
 						<?php endif; ?>
+						<?php if ( $float_reel_title ) : ?>
 						<h2><?php echo esc_html( $float_reel_title ); ?></h2>
+						<?php endif; ?>
 					</div>
+					<?php endif; ?>
 
 				</article>
 			</li>

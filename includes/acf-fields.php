@@ -66,7 +66,7 @@ function float_reels_register_acf_fields() {
 				'label'        => 'Reel title (optional)',
 				'name'         => 'reel_title',
 				'type'         => 'text',
-				'instructions' => 'Display title shown on the reel card and in the popup. Falls back to the post title when left empty.',
+				'instructions' => 'Display title shown on the reel card and in the popup. Leave empty to hide the heading on this reel.',
 				'required'     => 0,
 			),
 

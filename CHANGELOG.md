@@ -5,6 +5,15 @@ All notable changes to **float Reels** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] — 2026-04-27
+
+### Changed
+- **`reel_title` no longer falls back to the WP post title.** When the field is left empty, the carousel card, popup overlay, and archive tile now skip the heading element entirely — no auto-derived title is rendered. The `<span class="reel-card__overlay">` / `.reels-popup__overlay` containers are also omitted when both `reel_title` and `top_title` are empty, so we don't leave hollow markup in the DOM.
+- The slide / archive `<article>` keeps an `aria-label` (falling back to `get_the_title()`) when no `reel_title` is set, so screen-reader users still hear something meaningful for the slide/tile.
+
+### Migration
+- None required for existing reels with a `reel_title`. Reels currently relying on the WP post-title fallback will stop showing a heading after this update — set `reel_title` explicitly on each post where a visible heading is wanted.
+
 ## [1.2.0] — 2026-04-26
 
 ### Added
@@ -138,6 +147,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Swiper 11 bundled locally (`assets/js/libs/`) with jsDelivr CDN fallback.
 - Activation hook flushes rewrite rules after registering the CPT.
 
+[1.2.1]: #121--2026-04-27
 [1.2.0]: #120--2026-04-26
 [1.1.1]: #111--2026-04-23
 [1.1.0]: #110--2026-04-23

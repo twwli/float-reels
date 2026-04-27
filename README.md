@@ -76,7 +76,7 @@ Declared in `includes/acf-fields.php` as local field groups (version-controlled,
 | -------------------------- | ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `reel_stream_id`           | Text  | yes      | 32-char Cloudflare Stream Video ID (e.g. `07529a56ff78eb51f6ee5e72f892b6dc`).                                                                       |
 | `top_title`                | Text  | no       | Kicker / small-caps label above the title. Max 60 chars.                                                                                            |
-| `reel_title`               | Text  | no       | Display title. Falls back to `post_title` when empty.                                                                                               |
+| `reel_title`               | Text  | no       | Display title shown on the card, in the popup, and on the archive tile. Leave empty to hide the heading entirely (no fallback to `post_title`).      |
 | `reel_carousel_thumbnail`  | Image | no       | 9:16 image overlaid on the homepage carousel card. Fades out on hover (desktop) / tap (mobile) to reveal the video. Min 540 × 960. JPG/PNG/WebP.   |
 | `thumbnail_square`         | Image | no       | Optional manual square crop (min 800 × 800) for listing views.                                                                                      |
 
