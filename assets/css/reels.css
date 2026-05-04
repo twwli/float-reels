@@ -43,6 +43,12 @@
     }
 }
 
+.reel-card__kicker {
+    text-transform: uppercase;
+    font-size: 13px;
+    line-height: 1.25em;
+}
+
 .reel-card__video {
     display: block;
     width: 100%;
